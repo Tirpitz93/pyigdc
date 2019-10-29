@@ -18,11 +18,11 @@
 
 import socket
 import argparse
-import urllib2
-from StringIO import StringIO
-from httplib import HTTPResponse
+import urllib.request, urllib.error, urllib.parse
+from io import StringIO
+from http.client import HTTPResponse
 from xml.dom import minidom
-from urlparse import urlparse
+from urllib.parse import urlparse
 import re
 import json
 import ctypes
@@ -221,7 +221,7 @@ def get1stTagText(xmls,tagname_list):
             else:
                 r[tagn] = None
         except:
-            print"xml parse err: {tag} not found".format(tag=tagn)
+            print("xml parse err: {tag} not found".format(tag=tagn))
     return r
 
 
@@ -282,21 +282,21 @@ class IGDClient:
             up_disc='M-SEARCH * HTTP/1.1\r\nHOST:[{dst}]:1900\r\nST:upnp:rootdevice\r\nMX:2\r\nMAN:"ssdp:discover"\r\n\r\n'.format(dst=dst_ip)
             sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
             #sock.setsockopt(socket.IPPROTO_IP, socket.IPV6_MULTICAST_HOPS, 2)
-            if self.debug:print "trying to bind to address:",self.intIP
+            if self.debug:print("trying to bind to address:",self.intIP)
             socketaddr=socket.getaddrinfo(self.intIP,19110)[-1:][0][-1:][0]
             sock.bind(socketaddr)
 
 
             sock.sendto(up_disc, (dst_ip, 1900))
 
-        if self.debug:print "Discovery: ----- tx request -----\n "+up_disc
+        if self.debug:print("Discovery: ----- tx request -----\n "+up_disc)
         sock.settimeout(10.0)
         data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
         sock.close()
 
-        if self.debug:print "Discovery: ----- rx reply -----\n "+data
+        if self.debug:print("Discovery: ----- rx reply -----\n "+data)
         descURL=httpparse(StringIO(data)).getheader('location')
-        descXMLs=urllib2.urlopen(descURL).read()
+        descXMLs=urllib.request.urlopen(descURL).read()
         self.pr=urlparse(descURL)
         baseURL=self.pr.scheme+"://"+self.pr.netloc
         dom=minidom.parseString(descXMLs)
@@ -311,7 +311,7 @@ class IGDClient:
                     cun=e.getElementsByTagName('controlURL')
                     self.ctrlURL=baseURL+cun[0].firstChild.nodeValue
                     break
-        if self.debug: print "control URL is ",self.ctrlURL
+        if self.debug: print("control URL is ",self.ctrlURL)
 
 
 
@@ -553,7 +553,7 @@ class IGDClient:
                     try:
                             port = int(hostNameArray[1])
                     except:
-                            print 'Invalid port specified for host connection:',hostName[1]
+                            print('Invalid port specified for host connection:',hostName[1])
                             return False
                 else:
                     hostNameArray = hostName.split(']')
@@ -561,14 +561,14 @@ class IGDClient:
                     try:
                             port = int(hostNameArray[1][1:])
                     except:
-                            print 'Invalid port specified for host connection:',hostName[1]
+                            print('Invalid port specified for host connection:',hostName[1])
                             return False
         else:
                 host = hostName
                 port = 80
 
         #Create a string containing all of the SOAP action's arguments and values
-        for arg,(val,dt) in actionArguments.iteritems():
+        for arg,(val,dt) in actionArguments.items():
                 argList += '<%s>%s</%s>' % (arg,val,arg)
 
         #Create the SOAP request
@@ -590,19 +590,19 @@ class IGDClient:
                         }
 
         #Generate the final payload
-        for head,value in headers.iteritems():
+        for head,value in headers.items():
                 soapRequest += '%s: %s\r\n' % (head,value)
         soapRequest += '\r\n%s' % soapBody
 
         if self.debug:
-            print "Action: ---------- tx request -----------"
+            print("Action: ---------- tx request -----------")
             if not self.pprint:
-                print soapRequest
+                print(soapRequest)
             else:
-                print headers
+                print(headers)
                 xml = minidom.parseString(soapBody)
-                print xml.toprettyxml()
-            print "Action: -------- end of tx request ------"
+                print(xml.toprettyxml())
+            print("Action: -------- end of tx request ------")
 
 
         #Send data and go into recieve loop
@@ -615,7 +615,7 @@ class IGDClient:
         sock.send(soapRequest)
         data = sock.recv(8192)
         if not data:
-            print "No response!"
+            print("No response!")
             return
         else:
             soapResponse += data
@@ -635,15 +635,15 @@ class IGDClient:
         sock.close()
         (header,body) = soapResponse.split('\r\n\r\n',1)
         if self.debug == True:
-            print "Action: --------rx http response header----------"
-            print header
-            print "Action: -------- rx http response body----------"
+            print("Action: --------rx http response header----------")
+            print(header)
+            print("Action: -------- rx http response body----------")
             if not self.pprint:
-                print body
+                print(body)
             else:
                 xml = minidom.parseString(body)
-                print xml.toprettyxml()
-            print "Action: --------end of rx http response body  -----"
+                print(xml.toprettyxml())
+            print("Action: --------end of rx http response body  -----")
         if not header.upper().startswith('HTTP/1.') or not ' 200 ' in header.split('\r\n')[0]:
             err_code,err_desc=parseErrMsg(body)
             raise UPNPError(header.split('\r\n')[0].split(' ',1)[1],
@@ -677,7 +677,7 @@ class IGDClient:
         upnp_method="AddPinhole"
         pid=getProtoId(proto)
         if pid==False:
-            print proto, " is not a supported protocol"
+            print(proto, " is not a supported protocol")
             return
         sendArgs={
         "RemoteHost": (rhost,'string'),
@@ -698,7 +698,7 @@ class IGDClient:
         upnp_method="GetOutboundPinholeTimeout"
         pid=getProtoId(proto)
         if pid==False:
-            print proto, " is not a supported protocol"
+            print(proto, " is not a supported protocol")
             return
         sendArgs={
         "RemoteHost": (rhost,'string'),
@@ -784,7 +784,7 @@ class IGDCMDClient:
 
     def getExtIP(self,args):
         extip=self.igdc.GetExternalIP()
-        print json.dumps(extip,indent=4)
+        print(json.dumps(extip,indent=4))
 
     def getGPM(self,args):
         rlist =[]
@@ -801,44 +801,44 @@ class IGDCMDClient:
                     if e.code==713:
                         break
                     else:
-                        print e
+                        print(e)
                         return False
                 i+=1
                 if pm != None:
                     rlist.append(pm)
                 else:
                     break
-        print json.dumps(rlist,indent=4)
+        print(json.dumps(rlist,indent=4))
 
     def getSPM(self,args):
 
         pm=self.igdc.GetSpecificPortMappingEntry(args.extPort, args.proto,args.remote)
-        print json.dumps(pm,indent=4)
+        print(json.dumps(pm,indent=4))
 
     def getNRSS(self,args):
 
         pm=self.igdc.GetNATRSIPStatus()
-        print json.dumps(pm,indent=4)
+        print(json.dumps(pm,indent=4))
 
     def getWDD(self,args):
 
         pm=self.igdc.GetWarnDisconnectDelay()
-        print json.dumps(pm,indent=4)
+        print(json.dumps(pm,indent=4))
 
     def getIDT(self,args):
 
         pm=self.igdc.GetIdleDisconnectTime()
-        print json.dumps(pm,indent=4)
+        print(json.dumps(pm,indent=4))
 
     def getADT(self,args):
 
         pm=self.igdc.GetAutoDisconnectTime()
-        print json.dumps(pm,indent=4)
+        print(json.dumps(pm,indent=4))
 
     def getSI(self,args):
 
         pm=self.igdc.GetStatusInfo()
-        print json.dumps(pm,indent=4)
+        print(json.dumps(pm,indent=4))
 
     def setWDD(self,args):
 
@@ -867,36 +867,36 @@ class IGDCMDClient:
     def getCT(self,args):
 
         pm=self.igdc.GetConnectionTypeInfo()
-        print json.dumps(pm,indent=4)
+        print(json.dumps(pm,indent=4))
 
     def setCT(self,args):
 
         self.igdc.SetConnectionType(args.ct_type)
 
     def custom(self,args):
-        print args.input_args
+        print(args.input_args)
         iargs=json.loads(args.input_args)
         resp_xml=self.igdc.customAction(args.method_name,iargs,args.svc)
         if self.igdc.pprint:
             xml = minidom.parseString(resp_xml)
-            print xml.toprettyxml()
+            print(xml.toprettyxml())
         else:
-            print resp_xml
+            print(resp_xml)
 
 
     #following are for IPv6FWControl
     def getFWStatus(self,args):
         pm=self.igdc.GetFWStatus()
-        print json.dumps(pm,indent=4)
+        print(json.dumps(pm,indent=4))
 
     def addPH(self,args):
         r=self.igdc.AddPinhole(args.intIP,args.rIP,args.rPort,args.intPort,args.proto,args.lease)
-        print json.dumps(r,indent=4)
+        print(json.dumps(r,indent=4))
 
 
     def getOPHT(self,args):
         r=self.igdc.GetPinholeTimeout(args.intIP,args.rIP,args.rPort,args.intPort,args.proto)
-        print json.dumps(r,indent=4)
+        print(json.dumps(r,indent=4))
 
     def updatePH(self,args):
         self.igdc.UpdatePinhole(args.uid,args.lease)
@@ -907,11 +907,11 @@ class IGDCMDClient:
 
     def getPHPkts(self,args):
         r=self.igdc.GetPinholePkts(args.uid)
-        print json.dumps(r,indent=4)
+        print(json.dumps(r,indent=4))
 
     def chkPH(self,args):
         r=self.igdc.CheckPinhole(args.uid)
-        print json.dumps(r,indent=4)
+        print(json.dumps(r,indent=4))
 
 def main():
     cli=IGDCMDClient()
